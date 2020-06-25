@@ -1,0 +1,10 @@
+# cached python files
+.ipynb_checkpoints
+__pycache__
+
+# ide files
+.vscode
+.idea
+
+# package files
+*egg-info
