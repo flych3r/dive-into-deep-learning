@@ -1,9 +1,9 @@
 import tensorflow as tf
 
 from d2l.tensorflow.activations import relu
-from d2l.tensorflow.regularization import dropout
-from d2l.tensorflow.plot import Animator
 from d2l.tensorflow.metrics import Accumulator
+from d2l.tensorflow.plot import Animator
+from d2l.tensorflow.regularization import dropout
 
 
 def linreg(X, W, b):

@@ -1,4 +1,3 @@
-import tensorflow as tf
 
 from d2l.tensorflow.activations import get_activation
 from d2l.tensorflow.initializers import initialize_parameters
@@ -38,4 +37,3 @@ class Dense(BaseLayer):
             'weights': self.weights.numpy(),
             'bias': self.bias.numpy()
         })
-
