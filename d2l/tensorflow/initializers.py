@@ -1,39 +1,67 @@
 import tensorflow as tf
 
 
-def initialize_parameters(num_inputs, num_outputs, method=None, scale=None, sigma=None):
+def initialize_parameters(
+    num_inputs, num_outputs, bias_units=None,
+    method='gaussian', magnitude=0, scale=0.1,
+    trainable=True
+):
     """Initializes weights and bias parameters."""
+    if not bias_units:
+        bias_units = num_outputs
+
+    W = initialize_weights((num_inputs, num_outputs), trainable, method, magnitude, scale)
+
+    b = initialize_bias(bias_units, trainable)
+
+    return W, b
+
+
+def initialize_weights(
+    shape, trainable=True, method='gaussian', magnitude=0, scale=0.1
+):
     if method == 'gaussian':
         method = gaussian_initialization
     if method == 'xavier':
         method = xavier_initialization
 
-    W = tf.Variable(
-        method((num_inputs, num_outputs), scale, sigma),
+    if trainable:
+        tensor = tf.Variable
+    else:
+        tensor = tf.constant
+
+    return tensor(
+        method(shape, magnitude, scale),
         name='weights'
     )
-    b = tf.Variable(
-        tf.zeros(shape=(num_outputs,)),
+
+
+def initialize_bias(bias_units, trainable=True):
+    if trainable:
+        tensor = tf.Variable
+    else:
+        tensor = tf.constant
+
+    return tensor(
+        tf.zeros(shape=(bias_units,)),
         name='bias'
     )
 
-    return W, b
 
-
-def gaussian_initialization(shape, scale=None, sigma=None):
+def gaussian_initialization(shape, magnitude=None, scale=None):
+    if magnitude is None:
+        magnitude = 0
     if scale is None:
-        scale = 0
-    if sigma is None:
-        sigma = 0.1
+        scale = 0.1
 
-    return tf.random.normal(mean=scale, stddev=sigma, shape=shape)
+    return tf.random.normal(mean=magnitude, stddev=scale, shape=shape)
 
 
-def xavier_initialization(shape, scale=None, sigma=None):
+def xavier_initialization(shape, magnitude=None, scale=None):
+    if magnitude is None:
+        magnitude = 6
     if scale is None:
-        scale = 6
-    if sigma is None:
-        sigma = 0.5
+        scale = 0.5
 
-    interval = (scale / sum(shape)) ** sigma
+    interval = (magnitude / sum(shape)) ** scale
     return tf.random.uniform(minval=-interval, maxval=interval, shape=shape)

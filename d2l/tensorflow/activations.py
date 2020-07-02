@@ -6,6 +6,7 @@ def get_activation(activation):
         return relu
     if activation == 'sigmoid':
         return sigmoid
+    return no_activation
 
 
 def relu(X):
@@ -16,3 +17,7 @@ def relu(X):
 def sigmoid(X):
     """Sigmoid activation function."""
     return 1 / (1 + tf.exp(-X))
+
+
+def no_activation(X):
+    return X

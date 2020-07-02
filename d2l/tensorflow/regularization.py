@@ -1,9 +1,9 @@
 import tensorflow as tf
 
 
-def l2_penalty(W):
+def l2_penalty(lambd, W):
     """L2 Penalty function."""
-    return tf.reduce_sum(W * W) / 2
+    return lambd * (tf.reduce_sum(W * W) / 2)
 
 
 def dropout(X, drop_rate):
