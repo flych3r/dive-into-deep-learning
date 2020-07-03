@@ -30,6 +30,26 @@ def semilogy(num_epochs, dists, legends, xlabel, ylabel, figsize):
     plt.show()
 
 
+def plot_history(hist, metric):
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6), sharex=True)
+
+    axes[0].plot(hist.history[metric])
+    axes[0].plot(hist.history['val_{}'.format(metric)])
+    axes[0].set_title('model accuracy')
+    axes[0].set_ylabel('accuracy')
+    axes[0].set_xlabel('epoch')
+    axes[0].legend(['train', 'val'], loc='upper left')
+
+    axes[1].plot(hist.history['loss'])
+    axes[1].plot(hist.history['val_loss'])
+    axes[1].set_title('model loss')
+    axes[1].set_ylabel('loss')
+    axes[1].set_xlabel('epoch')
+    axes[1].legend(['train', 'val'], loc='upper left')
+
+    plt.show()
+
+
 class Animator:
     def __init__(self, xlabel=None, ylabel=None, legend=None, title=None,
                  xlim=None, ylim=None, xscale='linear', yscale='linear',
