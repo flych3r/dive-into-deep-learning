@@ -11,15 +11,8 @@ requirements = [
     'pandas'
 ]
 
-# don't import d2l to get __version__ since it has deps
-ver_re = re.compile(r"__version__ = \"([\.\d]+).*")
-with open(os.path.join('d2l', '__init__.py')) as f:
-    lines = f.readlines()
-for line in lines:
-    m = ver_re.match(line)
-    if m:
-        version = m.group(1)
-        break
+version = 0.1
+
 setup(
     name='d2l',
     version=version,
