@@ -1,7 +1,11 @@
 import tensorflow as tf
 
 from d2l.tensorflow.activations import get_activation
-from d2l.tensorflow.initializers import initialize_parameters, initialize_weights
+from d2l.tensorflow.initializers import (
+    initialize_bias,
+    initialize_parameters,
+    initialize_weights,
+)
 
 
 class BaseLayer:
@@ -57,28 +61,27 @@ class Conv2D(BaseLayer):
         self.__name__ = '{}_{}'.format(Conv2D.__name__, Conv2D._identifier).lower()
 
         self.filter_shape = (channels,) + kernel_shape
-        self.filters = tf.Variable(tf.stack([
+        self.weights = tf.Variable(tf.stack([
             initialize_weights(
-                self.filter_shape, method=initialization,
-                magnitude=magnitude, scale=scale
+                self.filter_shape, method=initialization, magnitude=magnitude, scale=scale
             ) for _ in range(filters)
         ]))
+        self.bias = tf.Variable(initialize_bias(filters))
         self.filter_shape = kernel_shape + (channels, filters)
         self.kernel_shape = kernel_shape
         self.channels = channels
         self.activation = get_activation(activation)
 
     def __call__(self, X):
-        msg = 'Input must be 4 dimentional (batch_size, height, width, channels)'
-        assert len(X.shape) == 4, msg
-        return tf.squeeze(
-            tf.nn.conv2d(
-                tf.reshape(X, X.shape),
-                tf.reshape(self.filters, self.filter_shape),
-                strides=1,
-                padding='VALID'
-            )
+        err = 'Input must be 4 dimentional (batch_size, height, width, channels)'
+        assert len(X.shape) == 4, err
+        conv = tf.nn.conv2d(
+            tf.reshape(X, X.shape),
+            tf.reshape(self.weights, self.filter_shape),
+            strides=1,
+            padding='VALID'
         )
+        return tf.squeeze(self.activation(conv + self.bias))
 
     def __repr__(self):
         return str({
@@ -87,5 +90,6 @@ class Conv2D(BaseLayer):
             'kernel_shape': self.kernel_shape,
             'channels': self.channels,
             'activation': self.activation.__name__,
-            'filters': self.filters.numpy()
+            'weights': self.weights.numpy(),
+            'bias': self.bias.numpy()
         })
