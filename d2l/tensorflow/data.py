@@ -1,7 +1,7 @@
 import random
 
 import tensorflow_datasets as tfds
-from tensorflow import convert_to_tensor, gather, one_hot
+from tensorflow import convert_to_tensor, gather, one_hot, reshape
 from tensorflow.data.experimental import AUTOTUNE
 from tensorflow.image import resize
 from tensorflow.keras.datasets import fashion_mnist
@@ -68,3 +68,43 @@ def resize_images_generator(X, y, batch_size, shape):
             images = X[e * batch_size: (e + 1) * batch_size]
             labels = y[e * batch_size: (e + 1) * batch_size]
             yield resize(images, shape), labels
+
+
+def data_iter_random(corpus_indices, batch_size, num_steps):
+    # offset for the iterator over the data for uniform starts
+    offset = int(random.uniform(0, num_steps))
+    corpus_indices = corpus_indices[offset:]
+    # subtract 1 extra since we need to account for the sequence length
+    num_examples = ((len(corpus_indices) - 1) // num_steps) - 1
+    # discard half empty batches
+    num_batches = num_examples // batch_size
+    example_indices = list(range(0, num_examples * num_steps, num_steps))
+    random.shuffle(example_indices)
+
+    # This returns a sequence of the length num_steps starting from pos.
+    def _data(pos):
+        return corpus_indices[pos: pos + num_steps]
+
+    for i in range(0, batch_size * num_batches, batch_size):
+        # batch_size indicates the random examples read each time.
+        batch_indices = example_indices[i:(i + batch_size)]
+        X = [_data(j) for j in batch_indices]
+        Y = [_data(j + 1) for j in batch_indices]
+
+        yield convert_to_tensor(X), convert_to_tensor(Y)
+
+
+def data_iter_consecutive(corpus_indices, batch_size, num_steps):
+    # offset for the iterator over the data for uniform starts
+    offset = int(random.uniform(0, num_steps))
+    # slice out data - ignore num_steps and just wrap around
+    num_indices = ((len(corpus_indices) - offset) // batch_size) * batch_size
+    indices = convert_to_tensor(corpus_indices[offset:(offset + num_indices)])
+    indices = reshape(indices, (batch_size, -1))
+    # need to leave one last token since targets are shifted by 1
+    num_epochs = ((num_indices // batch_size) - 1) // num_steps
+
+    for i in range(0, num_epochs * num_steps, num_steps):
+        X = indices[:, i:(i + num_steps)]
+        Y = indices[:, (i + 1):(i + 1 + num_steps)]
+        yield convert_to_tensor(X), convert_to_tensor(Y)
