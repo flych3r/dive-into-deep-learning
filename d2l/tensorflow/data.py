@@ -1,4 +1,6 @@
 import random
+import collections
+import re
 
 import tensorflow_datasets as tfds
 from tensorflow import convert_to_tensor, gather, one_hot, reshape
@@ -70,7 +72,62 @@ def resize_images_generator(X, y, batch_size, shape):
             yield resize(images, shape), labels
 
 
-def data_iter_random(corpus_indices, batch_size, num_steps):
+def load_corpus(file_path, max_tokens=-1):
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    lines = [re.sub('[^A-Za-z]+', ' ', line.strip().lower()) for line in lines]
+    tokens = tokenize(lines, 'char')
+    vocab = Vocab(tokens)
+    corpus = [vocab[tk] for line in tokens for tk in line]
+    if max_tokens > 0:
+        corpus = corpus[:max_tokens]
+    return corpus, vocab
+
+def tokenize(lines, token='word'):
+    """Split sentences into word or char tokens."""
+    if token == 'word':
+        return [line.split(' ') for line in lines]
+    elif token == 'char':
+        return [list(line) for line in lines]
+    else:
+        print('ERROR: unknown token type '+token)
+
+def count_corpus(sentences):
+    # Flatten a list of token lists into a list of tokens
+    tokens = [tk for line in sentences for tk in line]
+    return collections.Counter(tokens)
+
+class Vocab:
+    def __init__(self, tokens, min_freq=0, reserved_tokens=None):
+        if reserved_tokens is None:
+            reserved_tokens = []
+        # Sort according to frequencies
+        counter = count_corpus(tokens)
+        self.token_freqs = sorted(counter.items(), key=lambda x: x[0])
+        self.token_freqs.sort(key=lambda x: x[1], reverse=True)
+        self.unk, uniq_tokens = 0, ['<unk>'] + reserved_tokens
+        uniq_tokens += [token for token, freq in self.token_freqs
+                        if freq >= min_freq and token not in uniq_tokens]
+        self.idx_to_token, self.token_to_idx = [], dict()
+        for token in uniq_tokens:
+            self.idx_to_token.append(token)
+            self.token_to_idx[token] = len(self.idx_to_token) - 1
+
+    def __len__(self):
+        return len(self.idx_to_token)
+
+    def __getitem__(self, tokens):
+        if not isinstance(tokens, (list, tuple)):
+            return self.token_to_idx.get(tokens, self.unk)
+        return [self.__getitem__(token) for token in tokens]
+
+    def to_tokens(self, indices):
+        if not isinstance(indices, (list, tuple)):
+            return self.idx_to_token[indices]
+        return [self.idx_to_token[index] for index in indices]
+
+
+def seq_data_iter_random(corpus_indices, batch_size, num_steps):
     # offset for the iterator over the data for uniform starts
     offset = int(random.uniform(0, num_steps))
     corpus_indices = corpus_indices[offset:]
@@ -94,7 +151,7 @@ def data_iter_random(corpus_indices, batch_size, num_steps):
         yield convert_to_tensor(X), convert_to_tensor(Y)
 
 
-def data_iter_consecutive(corpus_indices, batch_size, num_steps):
+def seq_data_iter_consecutive(corpus_indices, batch_size, num_steps):
     # offset for the iterator over the data for uniform starts
     offset = int(random.uniform(0, num_steps))
     # slice out data - ignore num_steps and just wrap around
@@ -108,3 +165,24 @@ def data_iter_consecutive(corpus_indices, batch_size, num_steps):
         X = indices[:, i:(i + num_steps)]
         Y = indices[:, (i + 1):(i + 1 + num_steps)]
         yield convert_to_tensor(X), convert_to_tensor(Y)
+
+
+class SeqDataLoader:
+    """A iterator to load sequence data."""
+    def __init__(self, file_path, batch_size, num_steps, use_random_iter, max_tokens):
+        if use_random_iter:
+            self.data_iter_fn = seq_data_iter_random
+        else:
+            self.data_iter_fn = seq_data_iter_consecutive
+        self.corpus, self.vocab = load_corpus(file_path, max_tokens)
+        self.batch_size, self.num_steps = batch_size, num_steps
+
+    def __iter__(self):
+        return self.data_iter_fn(self.corpus, self.batch_size, self.num_steps)
+
+
+def load_seq_data(file_path, batch_size, num_steps, use_random_iter=False, max_tokens=10000):
+    data_iter = SeqDataLoader(
+        file_path, batch_size, num_steps, use_random_iter, max_tokens
+    )
+    return data_iter, data_iter.vocab

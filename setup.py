@@ -4,8 +4,6 @@ import re
 from setuptools import find_packages, setup
 
 requirements = [
-    'ipython',
-    'jupyter',
     'matplotlib',
     'numpy',
     'pandas'
