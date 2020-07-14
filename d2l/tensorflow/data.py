@@ -1,5 +1,5 @@
-import random
 import collections
+import random
 import re
 
 import tensorflow_datasets as tfds
@@ -83,6 +83,7 @@ def load_corpus(file_path, max_tokens=-1):
         corpus = corpus[:max_tokens]
     return corpus, vocab
 
+
 def tokenize(lines, token='word'):
     """Split sentences into word or char tokens."""
     if token == 'word':
@@ -90,12 +91,14 @@ def tokenize(lines, token='word'):
     elif token == 'char':
         return [list(line) for line in lines]
     else:
-        print('ERROR: unknown token type '+token)
+        print('ERROR: unknown token type ' + token)
+
 
 def count_corpus(sentences):
     # Flatten a list of token lists into a list of tokens
     tokens = [tk for line in sentences for tk in line]
     return collections.Counter(tokens)
+
 
 class Vocab:
     def __init__(self, tokens, min_freq=0, reserved_tokens=None):
@@ -181,7 +184,9 @@ class SeqDataLoader:
         return self.data_iter_fn(self.corpus, self.batch_size, self.num_steps)
 
 
-def load_seq_data(file_path, batch_size, num_steps, use_random_iter=False, max_tokens=10000):
+def load_seq_data(
+    file_path, batch_size, num_steps, use_random_iter=False, max_tokens=10000
+):
     data_iter = SeqDataLoader(
         file_path, batch_size, num_steps, use_random_iter, max_tokens
     )

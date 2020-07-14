@@ -1,13 +1,14 @@
+import math
+import time
+
 import tensorflow as tf
+from tqdm import tqdm
 
 from d2l.tensorflow.activations import relu
+from d2l.tensorflow.data import seq_data_iter_consecutive, seq_data_iter_random
 from d2l.tensorflow.metrics import Accumulator
 from d2l.tensorflow.plot import Animator
 from d2l.tensorflow.regularization import dropout
-from d2l.tensorflow.data import seq_data_iter_consecutive, seq_data_iter_random
-import time
-import math
-from tqdm import tqdm
 
 
 def linreg(X, W, b):
@@ -74,32 +75,35 @@ def grad_clipping(gradients, theta):
             grad.assign_add(grad * (theta / norm))
     return gradients
 
-def train_and_predict_rnn(rnn, loss, optimizer, get_params, init_rnn_state, num_hiddens,
-                          vocab_size, corpus_indices, idx_to_char,
-                          char_to_idx, is_random_iter, num_epochs, num_steps,
-                          lr, clipping_theta, batch_size, pred_period,
-                          pred_len, prefixes):
+
+def train_and_predict_rnn(
+    rnn, loss_function, optimizer, get_params, init_rnn_state, num_hiddens,
+    vocab_size, corpus_indices, idx_to_char,
+    char_to_idx, is_random_iter, num_epochs, num_steps,
+    lr, clipping_theta, batch_size, pred_period,
+    pred_len, prefixes
+):
     if is_random_iter:
         data_iter_fn = seq_data_iter_random
     else:
         data_iter_fn = seq_data_iter_consecutive
     params = get_params()
-    
+
     for epoch in tqdm(range(num_epochs)):
-        if not is_random_iter:  
-            # If adjacent sampling is used, the hidden state is initialized 
+        if not is_random_iter:
+            # If adjacent sampling is used, the hidden state is initialized
             # at the beginning of the epoch.
             state = init_rnn_state(batch_size, num_hiddens)
         l_sum, n, start = 0.0, 0, time.time()
         data_iter = data_iter_fn(corpus_indices, batch_size, num_steps)
         for X, Y in data_iter:
-            if is_random_iter:  
-                # If random sampling is used, the hidden state is initialized 
+            if is_random_iter:
+                # If random sampling is used, the hidden state is initialized
                 # before each mini-batch update.
                 state = init_rnn_state(batch_size, num_hiddens)
-            # else:  
-            #     # Otherwise, the detach function needs to be used to separate 
-            #     # the hidden state from the computational graph to avoid 
+            # else:
+            #     # Otherwise, the detach function needs to be used to separate
+            #     # the hidden state from the computational graph to avoid
             #     # backpropagation beyond the current sample.
             #     for s in state:
             #         s.detach()
@@ -109,30 +113,29 @@ def train_and_predict_rnn(rnn, loss, optimizer, get_params, init_rnn_state, num_
                 (outputs, state) = rnn(inputs, state, params)
                 # after stitching it is (num_steps * batch_size, vocab_size).
                 outputs = tf.concat(outputs, axis=0)
-                # The shape of Y is (batch_size, num_steps), and then becomes 
-                # a vector with a length of batch * num_steps after 
-                # transposition. This gives it a one-to-one correspondence 
+                # The shape of Y is (batch_size, num_steps), and then becomes
+                # a vector with a length of batch * num_steps after
+                # transposition. This gives it a one-to-one correspondence
                 # with output rows.
                 y = tf.reshape(tf.transpose(Y), (-1,))
                 # Average classification error via cross entropy loss.
-                l = tf.reduce_mean(loss(y, outputs))
-            gradients = t.gradient(l, params)
+                loss = tf.reduce_mean(loss_function(y, outputs))
+            gradients = t.gradient(loss, params)
             gradients = grad_clipping(gradients, clipping_theta)  # Clip the gradient.
-            optimizer(params, gradients, lr, 1)  
+            optimizer(params, gradients, lr, 1)
             # Since the error is the mean, no need to average gradients here.
-            l_sum += l * y.shape[0]
+            l_sum += loss * y.shape[0]
             n += y.shape[0]
 
         if (epoch + 1) % pred_period == 0:
             print('epoch %d, perplexity %f, time %.2f sec' % (
                 epoch + 1, math.exp(l_sum / n), time.time() - start))
             for prefix in prefixes:
-                print(' -', 
-                    predict_rnn(
-                        prefix, pred_len, rnn, params, init_rnn_state,
-                        num_hiddens, vocab_size, idx_to_char, char_to_idx
-                    )
-                )
+                print(' -', predict_rnn(
+                    prefix, pred_len, rnn, params, init_rnn_state,
+                    num_hiddens, vocab_size, idx_to_char, char_to_idx
+                ))
+
 
 class BaseModel:
     _identifier = -1
@@ -240,6 +243,3 @@ class Sequential(BaseModel):
             'name': self.__name__,
             'layers': self.layers,
         })
-
-
-
