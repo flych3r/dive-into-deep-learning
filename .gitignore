@@ -2,6 +2,9 @@
 .ipynb_checkpoints
 __pycache__
 
+# data files
+data/
+
 # ide files
 .vscode
 .idea

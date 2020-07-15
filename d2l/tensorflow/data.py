@@ -101,18 +101,21 @@ def count_corpus(sentences):
 
 
 class Vocab:
-    def __init__(self, tokens, min_freq=0, reserved_tokens=None):
-        if reserved_tokens is None:
-            reserved_tokens = []
-        # Sort according to frequencies
-        counter = count_corpus(tokens)
-        self.token_freqs = sorted(counter.items(), key=lambda x: x[0])
-        self.token_freqs.sort(key=lambda x: x[1], reverse=True)
-        self.unk, uniq_tokens = 0, ['<unk>'] + reserved_tokens
-        uniq_tokens += [token for token, freq in self.token_freqs
-                        if freq >= min_freq and token not in uniq_tokens]
-        self.idx_to_token, self.token_to_idx = [], dict()
-        for token in uniq_tokens:
+    def __init__(self, tokens, min_freq=0, use_special_tokens=False):
+        counter = collections.Counter(tokens)
+        token_freqs = sorted(counter.items(), key=lambda x: x[0])
+        token_freqs.sort(key=lambda x: x[1], reverse=True)
+        if use_special_tokens:
+            self.pad, self.bos, self.eos, self.unk = (0, 1, 2, 3)
+            special_tokens = ['<pad>', '<bos>', '<eos>', '<unk>']
+        else:
+            self.unk = 0
+            special_tokens = ['<unk>']
+        tokens = [token for token, freq in token_freqs
+                  if freq >= min_freq and token not in special_tokens]
+        self.idx_to_token = []
+        self.token_to_idx = dict()
+        for token in special_tokens + tokens:
             self.idx_to_token.append(token)
             self.token_to_idx[token] = len(self.idx_to_token) - 1
 
@@ -122,12 +125,14 @@ class Vocab:
     def __getitem__(self, tokens):
         if not isinstance(tokens, (list, tuple)):
             return self.token_to_idx.get(tokens, self.unk)
-        return [self.__getitem__(token) for token in tokens]
+        else:
+            return [self.__getitem__(token) for token in tokens]
 
     def to_tokens(self, indices):
         if not isinstance(indices, (list, tuple)):
             return self.idx_to_token[indices]
-        return [self.idx_to_token[index] for index in indices]
+        else:
+            return [self.idx_to_token[index] for index in indices]
 
 
 def seq_data_iter_random(corpus_indices, batch_size, num_steps):
