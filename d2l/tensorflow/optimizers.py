@@ -9,5 +9,5 @@ def sgd(params, gradients, learning_rate, batch_size):
     else:
         params = [*itertools.chain(params)]
         gradients = [*itertools.chain(gradients)]
-    for i in range(len(params)):
-        params[i].assign_sub((learning_rate * gradients[i]) / batch_size)
+    for param, grad in zip(params, gradients):
+        param.assign_sub((learning_rate * grad) / batch_size)

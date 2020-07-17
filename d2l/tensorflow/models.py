@@ -13,12 +13,12 @@ from d2l.tensorflow.regularization import dropout
 
 def linreg(X, W, b):
     """Linear regression implementation."""
-    return tf.tensordot(X, W, axes=1) + b
+    return tf.matmul(X, W) + b
 
 
 def perceptron(W, b, X, y):
     """Perceptron implementation."""
-    if y * (tf.tensordot(W, X, axes=1) + b) <= 0:
+    if y * (tf.matmul(W, X) + b) <= 0:
         W.assign_add(y * X)
         b.assign_add([y])
         return 1
@@ -198,7 +198,7 @@ class Sequential(BaseModel):
                     y_hat = self.net(X)
                     loss = self.loss_function(y, y_hat)
                 dW, db = t.gradient(loss, [W, b])
-                self.optimizer(W, b, dW, db, learning_rate, batch_size)
+                self.optimizer([W, b], [dW, db], learning_rate, batch_size)
                 metric_train.add(
                     tf.reduce_sum(loss), self.eval_metric(y, y_hat), y.shape[0]
                 )

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from IPython import display
 
 
@@ -18,6 +19,35 @@ def show_images(imgs, num_rows, num_cols, titles=None, scale=2):
         if titles:
             ax.set_title(titles[i])
     return axes
+
+
+def show_trace(res):
+    n = max(abs(min(res)), abs(max(res)), 10)
+    f_line = np.arange(-n, n, 0.1)
+    plt.plot(f_line, [x * x for x in f_line])
+    plt.plot(res, [x * x for x in res], '-o')
+    plt.xlabel('x')
+    plt.ylabel('f(x)')
+    plt.show()
+
+
+def train_2d(trainer):
+    x1, x2, s1, s2 = -5, -2, 0, 0
+    results = [(x1, x2)]
+    for i in range(20):
+        x1, x2, s1, s2 = trainer(x1, x2, s1, s2)
+        results.append((x1, x2))
+    print('epoch %d, x1 %f, x2 %f' % (i + 1, x1, x2))
+    return results
+
+
+def show_trace_2d(f, results):
+    plt.plot(*zip(*results), '-o', color='#ff7f0e')
+    x1, x2 = np.meshgrid(np.arange(-5.5, 1.0, 0.1), np.arange(-3.0, 1.0, 0.1))
+    plt.contour(x1, x2, f(x1, x2), colors='#1f77b4')
+    plt.xlabel('x1')
+    plt.ylabel('x2')
+    plt.show()
 
 
 def semilogy(num_epochs, dists, legends, xlabel, ylabel, figsize):

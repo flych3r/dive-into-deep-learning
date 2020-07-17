@@ -25,16 +25,19 @@ def get_fashion_mnist_labels(labels):
     return [text_labels[int(i)] for i in labels]
 
 
-def batch_iter(features, labels, batch_size=256, shuffle=True):
+def batch_iter(features, labels, batch_size=256, shuffle=True, continuous=True):
     """Iterates thru a dataset."""
     num_examples = features.shape[0]
     indices = [*range(num_examples)]
     if shuffle:
         random.shuffle(indices)
+
     while True:
         for i in range(0, num_examples, batch_size):
             j = convert_to_tensor(indices[i: min(i + batch_size, num_examples)])
             yield gather(features, j), gather(labels, j)
+        if not continuous:
+            break
 
 
 def load_tfds_dataset(ds_name, batch_size=256, sparse=True):
